@@ -9,7 +9,7 @@ text_file.write("\t\t\t  ")
 text_file.write("Action\t\n")
 text_file.close()
 
-perf_file= open("performance_summary.text", "w")
+perf_file = open("performance_summary.text", "w")
 perf_file.write("\n")
 perf_file.write("# of entries in FWD TABLE\t\t\t")
 perf_file.write("Time taken\t\t\t\t\t\n")
@@ -31,16 +31,13 @@ while True:
     s.validate(packet, in_port)
     s.forward(packet, in_port)
     time2 = time.time()
-    perf_file= open("performance_summary.text", "a")
+    perf_file = open("performance_summary.text", "a")
     perf_file.write("\t\t")
-    perf_file.write(str(len(s.FWD_TABLE)))
+    perf_file.write(str(s.cuck.Number_of_entries))
     perf_file.write("\t\t\t\t\t\t")
     perf_file.write(str((time2-time1)*1000))
     perf_file.write("\n")
     perf_file.close()
-
-    #print(s.FWD_TABLE)
-
 
 
 

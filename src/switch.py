@@ -1,23 +1,39 @@
 import sys
+from cuckoo_hash import cuckoo
 class switch:
 
-    FWD_TABLE = {}
+    cuck = cuckoo()
     vlan_to_ports = {'100': ['0', '1', '2'], '200': ['3', '4', '5', '6'], '300': ['7', '8', '9']}
+
+    def debug_stdout(self, sfunc):
+         '''print(sfunc)'''
+
+    def debug_stdout2(sfunc):
+         '''print(sfunc)'''
+
+    debug = debug_stdout
+    debug2 = debug_stdout2
+
 
     file = open("mac_to_port.txt", "r")
     for line in file:
         a = line.split("port")
-        vlanid = a[1][8:11]
-        key = vlanid+a[0].strip()
-        FWD_TABLE[key] = a[1][0]
+        vlanid = a[1][8:11].strip()
+        key = vlanid + a[0].strip()
+        key_value_pair = cuck.Pair(key, str(a[1][0]))
+        cuck.insert(key_value_pair, 1, 1)
+        debug2("inserted mac : " + str(a[0].strip()) + ", key = " + str(key_value_pair.getKey()))
+
     file.close()
 
     def learn(self, packet, in_port):
         SRC_MAC = packet[1]
         vlan_id = packet[2]
         key = vlan_id + SRC_MAC
-        if key not in self.FWD_TABLE:
-            self.add_to_FWD_TABLE(key, str(in_port))
+        if self.if_present_in_cuckoo_hash_table(key):
+            return
+        self.insert_into_cuckoo_hash_table(key, str(in_port))
+        self.debug("learning mac :" + SRC_MAC + ", key = " + str(self.cuck.split_add(key)))
 
 
     def forward(self, packet, in_port):
@@ -25,10 +41,12 @@ class switch:
         vlan_id = packet[2]
         self.learn(packet, in_port)
         key = vlan_id + DST_MAC
-        if self.if_present_in_FWD_TABLE(key):
-            out_port = self.get_port_from_FWD_TABLE(key)
+        if self.if_present_in_cuckoo_hash_table(key):
+            out_port = self.get_port_from_cuckoo_hash_table(key)
+            self.debug("found dst mac entry:" + DST_MAC + ", key = " + str(self.cuck.split_add(key)))
             self.sendpacket(out_port, in_port, packet)
         else:
+            self.debug("could not find dst mac entry:" + DST_MAC + ", key = " + str(self.cuck.split_add(key)))
             self.broadcast(in_port, packet)
 
     def sendpacket(self, out_port, in_port, packet):
@@ -66,7 +84,7 @@ class switch:
             print("Invalid entry : VLAN_ID not found/configured")
             sys.exit()
         if in_port not in self.vlan_to_ports[vlan_id]:
-            print("Invalid entry : VLAN source mapping not found")
+            print("Invalid entry : VLAN port mapping not found")
             sys.exit()
 
     def validate_mac_format(self, mac):
@@ -83,24 +101,17 @@ class switch:
                 valid = False
         return valid
 
-    def check_(self, mac_int):
-        if mac_int <= 255:
-            return "The MAC address has the proper format"
-        else:
-            return "the MAC address does not have the proper format"
 
-    def add_to_FWD_TABLE(self, key, in_port):
-        self.FWD_TABLE[key] = in_port
+    def insert_into_cuckoo_hash_table(self, key, in_port):
+        key_value_pair = self.cuck.Pair(key, in_port)
+        self.cuck.insert(key_value_pair, 1, 1)
 
-    def if_present_in_FWD_TABLE(self, key):
-        if key in self.FWD_TABLE:
-            return True
-        else:
-            return False
+    def if_present_in_cuckoo_hash_table(self, key):
+        return self.cuck.search(key)
 
-    def get_port_from_FWD_TABLE(self, key):
-        port = self.FWD_TABLE[key]
-        return port
+    def get_port_from_cuckoo_hash_table(self, key):
+        return self.cuck.find_port(key)
+
 
 
 
